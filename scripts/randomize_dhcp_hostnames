@@ -1,0 +1,12 @@
+#!/bin/bash
+
+new_random_name="`grep -oh -E \"^[A-Za-z]+\" /usr/share/dict/american-english | shuf -n 1`"
+echo "[*] Random Name: $new_random_name"
+echo -e "\n===============================\n"
+IFS=$'\n'
+for i in $(ls /etc/NetworkManager/system-connections); do \
+	echo "[*] Renaming $i"
+   	nmcli connection modify "$i" ipv4.dhcp-hostname $new_random_name ipv6.dhcp-hostname $new_random_name; \
+done
+notify-send -u normal "OPSEC ROUTINE" "DHCP hostnames changed to $new_random_name"
+echo "[+] All done! "

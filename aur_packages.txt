@@ -1,0 +1,9 @@
+##-------- AUR Packages --------##
+polybar
+networkmanager-dmenu
+opensnitch-git
+plymouth
+i3lock-color
+blight
+mkinitcpio-openswap
+ckbcomp

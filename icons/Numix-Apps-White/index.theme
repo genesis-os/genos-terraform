@@ -1,0 +1,19 @@
+[Icon Theme]
+Name=Numix-Apps-White
+Comment=Icon theme from Numix Project
+
+Inherits=Numix-Apps
+Example=folder
+
+Directories=48/apps,48@2x/apps
+
+[48/apps]
+Size=48
+Context=Applications
+Type=Fixed
+
+[48@2x/apps]
+Size=48
+Scale=2
+Context=Applications
+Type=Fixed

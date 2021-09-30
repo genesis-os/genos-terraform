@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# TODO
+# Pacman update notifier
+# https://github.com/polybar/polybar-scripts/blob/master/polybar-scripts/updates-pacman/updates-pacman.sh
+
+# ☣ ☢ ☠ ⛨ 🛡⛔👁🕷🕸                  
+
+RED="#C32622"
+GREEN="#61C766"
+VPN_FAIL=" "
+UFW_FAIL=" "
+DNS_FAIL=" "
+APPARMOR_FAIL=" "
+OPENSNITCH_FAIL=" "
+ARP_POISONING=" "
+ALL_SECURE=1
+
+ESPEAK="echo"
+if type -p espeak > /dev/null; then
+	ESPEAK=`type -p espeak`
+elif type -p espeak-ng > /dev/null; then
+	ESPEAK=`type -p espeak-ng`
+fi
+
+check_vpn() {
+	if [ -d /sys/class/net/tun* ]; then
+		return
+	fi
+
+	if [ -d /sys/class/net/wg* ]; then
+		return
+	fi
+	
+	prompt_fail "$VPN_FAIL"
+	notify-send "VPN is disabled!"
+	$ESPEAK "Warning, VPN is disabled." > /dev/null 2>&1
+	ALL_SECURE=0
+}
+
+check_ufw() {
+	if ! systemctl is-active --quiet ufw; then
+		prompt_fail "$UFW_FAIL"
+		notify-send "UFW is disabled!"
+		$ESPEAK "Warning, firewall is disabled." > /dev/null 2>&1
+		ALL_SECURE=0
+		return		
+	fi
+}
+
+
+check_dnscrypt() {
+	if ! systemctl is-active --quiet dnscrypt-proxy; then
+		prompt_fail "$DNS_FAIL"
+		notify-send "Dnscrypt is disabled!"
+		$ESPEAK "Warning, DNS crypt is disabled." > /dev/null 2>&1
+		ALL_SECURE=0
+		return		
+	fi
+}
+
+check_apparmor() {
+	
+	if ! type -p aa-enabled > /dev/null; then
+		prompt_fail "$APPARMOR_FAIL"
+		notify-send "AppArmor is missing!"
+		$ESPEAK "Warning, AppArmor not installed." > /dev/null 2>&1
+		ALL_SECURE=0
+		return	
+	fi
+
+	if [[ $(aa-enabled) != "Yes" ]] ; then
+		prompt_fail "$APPARMOR_FAIL"
+		notify-send "AppArmor is disabled!"
+		$ESPEAK "Warning, AppArmor is disabled." > /dev/null 2>&1
+		ALL_SECURE=0
+		return
+	fi
+}
+
+check_opensnitch() {
+	if ! pidof -q opensnitchd; then
+		prompt_fail "$OPENSNITCH_FAIL"
+		notify-send "OpenSnitch is disabled!"
+		$ESPEAK "Warning, open snitch is disabled." > /dev/null 2>&1
+		ALL_SECURE=0
+		return
+	fi
+}
+
+
+check_arp_poisoning() {
+	dup_arp_table=$(arp -a | grep ":" | awk '{print $4}' | uniq -cd)
+	if [ ! -z $dup_arp_table ]; then
+		prompt_fail "$ARP_POISONING"
+		dup_arp_table=$'\n\n'$dup_arp_table
+		notify-send "Possible ARP poisoning attempt! $dup_arp_table"
+		$ESPEAK "Warning, Possible ARP poisoning attempt detected!" > /dev/null 2>&1
+		ALL_SECURE=0
+		return		
+	fi
+}
+
+prompt_fail() {
+	if [[ $(pidof polybar) -eq $PPID ]]; then
+		echo -n "%{F$RED}$1%{F-}"
+		return
+	fi
+	echo "[-] Failed $1"
+}
+
+prompt_secure() {
+	# SECURE="%{F#61C766}ﱾ %{F-}"
+	if [[ $(pidof polybar) -eq $PPID ]]; then
+		echo -n "%{F$GREEN}ﱾ %{F-}"
+		return
+	fi
+	echo "[+] Passed ﱾ "
+}
+
+
+# Main
+check_vpn
+check_ufw
+check_dnscrypt
+check_opensnitch
+check_apparmor
+check_arp_poisoning
+
+if [ $ALL_SECURE -eq 1 ]; then
+	prompt_secure
+fi
